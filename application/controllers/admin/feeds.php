@@ -69,12 +69,11 @@ class Feeds extends MY_Auth_Controller {
         $this->form_validation->set_error_delimiters('<div class="error">', '</div>');
 
         if ($this->form_validation->run()) {
-            $feed = array(
-                'feed_title' => $this->simplepie->get_title(),
-                'feed_icon' => $this->simplepie->get_favicon(),
-                'feed_url' => $this->input->post('url', TRUE),
-                'feed_status' => 'active'
-            );
+            $feed = new stdClass();
+            $feed->feed_title = $this->simplepie->get_title();
+            $feed->feed_icon = $this->simplepie->get_favicon();
+            $feed->feed_url = $this->input->post('url', TRUE);
+            $feed->feed_status = 'active';
 
             // Use permalink because sometimes feed is on subdomain which screws up plugin compatibility
             $url = parse_url($this->simplepie->get_permalink());
@@ -82,21 +81,23 @@ class Feeds extends MY_Auth_Controller {
                 $url = parse_url($this->input->post('url', TRUE));
             }
             if (substr($url['host'], 0, 4) === 'www.') {
-                $feed['feed_domain'] = substr($url['host'], 4);
+                $feed->feed_domain = substr($url['host'], 4);
             } else {
-                $feed['feed_domain'] = $url['host'];
+                $feed->feed_domain = $url['host'];
             }
 
-            if (!$feed['feed_icon']) {
-                $feed['feed_icon'] = 'http://'.$feed['feed_domain'].'/favicon.ico';
+            if (!$feed->feed_icon) {
+                $feed->feed_icon = 'http://' . $feed->feed_domain . '/favicon.ico';
             }
 
             // Add new feed to database
-            $this->feed_model->add_feed($feed);
+            $feed_id = $this->feed_model->add_feed($feed);
 
             // Retrieve the id of the new and fetch items for the feed.
-            $feed['feed_id'] = $this->db->insert_id();
-            $this->lifepress->fetch_item($feed);
+            if (!empty($feed_id)) {
+                $feed->feed_id = $feed_id;
+                $this->lifepress->fetch_item($feed);
+            }
 
             redirect('admin/feeds', 'location');
         }

@@ -82,6 +82,8 @@ class Feed_model extends CI_Model {
     function add_feed($feed)
     {
         $this->db->insert('feeds', $feed);
+
+        return $this->db->insert_id();
     }
 
     function delete_feed($feed_id)
